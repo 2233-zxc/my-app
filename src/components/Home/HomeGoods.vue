@@ -1,15 +1,5 @@
 <template>
-    <div class="goods wrapper">
-        <div class="goods-title">
-            <div class="title-left">
-                <h3>新鲜好物</h3>
-                <p>新鲜出炉 品质靠谱</p>
-            </div>
-            <div class="title-right">
-                <a href="#">查看全部</a>
-                <span class="iconfont icon-arrow-right-bold"></span>
-            </div>
-        </div>
+    <HomePanel title="新鲜好物" sub-title="新鲜出炉 品质靠谱">
         <div class="goods-content">
             <div v-if="goodsList.length === 0" class="empty">暂无商品数据</div>
             <div class="goods-item" v-for="(item,index) in goodsList" :key="item.id">
@@ -18,9 +8,10 @@
                 <span class="price">¥{{ item.price }}</span>
             </div>
         </div>
-    </div>
+    </HomePanel>
 </template>
 <script setup>
+import HomePanel from './HomePanel.vue';
 import { ref, onMounted } from 'vue';
 import { getGoodsApi } from '@/apis/home';
 const goodsList = ref([])
@@ -42,33 +33,6 @@ onMounted(() =>{
 
 </script>
 <style scoped>
-.goods{
-    height: 470px;
-    margin-bottom: 20px;
-}
-.goods-title{
-    height: 42px;
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 20px;
-}
-.title-left{
-    display: flex;
-    align-items: center;
-}
-.title-left h3{
-    margin: 0;
-    font-size: 30px;
-    color: #333333;
-}
-.title-left p{
-    margin-bottom: 0;
-    margin-left: 20px;
-    color: #A1A1A1;
-}
-.title-right a{
-    color: #A1A1A1;
-}
 .goods-content{
     display: flex;
     justify-content: space-between;

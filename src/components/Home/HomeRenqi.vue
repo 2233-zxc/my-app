@@ -1,15 +1,5 @@
 <template>
-    <div class="renqi wrapper">
-        <div class="renqi-title">
-            <div class="title-left">
-                <h3>人气推荐</h3>
-                <p>人气爆款 不容错过</p>
-            </div>
-            <div class="title-right">
-                <a href="#">查看全部</a>
-                <span class="iconfont icon-arrow-right-bold"></span>
-            </div>
-        </div>
+    <HomePanel title="人气推荐" sub-title="人气爆款 不容错过">
         <div class="renqi-content">
             <div class="renqi-item" v-for="(item,index) in renqiList" :key="item.id">
                 <img v-img-lazy="item.imgUrl" alt="">
@@ -17,9 +7,10 @@
                 <p>{{ item.text }}</p>
             </div>
         </div>
-    </div>
+    </HomePanel>
 </template>
 <script setup>
+import HomePanel from './HomePanel.vue';
 import { ref, onMounted } from 'vue';
 import { getRenqiApi } from '@/apis/home';
 const renqiList = ref([])
@@ -40,37 +31,6 @@ onMounted(() =>{
 })
 </script>
 <style scoped>
-.renqi{
-    height: 470px;
-    margin-bottom: 20px;
-}
-.renqi-title{
-    height: 42px;
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 20px;
-}
-.title-left{
-    display: flex;
-    align-items: center;
-}
-.title-right{
-    display: flex;
-    align-items: center;
-}
-.title-left h3{
-    margin: 0;
-    font-size: 30px;
-    color: #333333;
-}
-.title-left p{
-    margin-bottom: 0;
-    margin-left: 20px;
-    color: #A1A1A1;
-}
-.title-right a{
-    color: #A1A1A1;
-}
 .renqi-content{
     display: flex;
     justify-content: space-between;
