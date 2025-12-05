@@ -1,0 +1,19 @@
+*{
+    margin: 0;
+    padding: 0;
+}
+li {
+  list-style: none;
+  padding-left: 0;/* 移除默认缩进 */
+}
+ul{
+  margin: 0;
+  padding: 0;/* 移除默认缩进 */
+}
+a{
+  text-decoration: none;
+}
+.wrapper{
+  width: 1200px;
+  margin: 0 auto;
+}
