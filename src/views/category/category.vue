@@ -17,15 +17,16 @@
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 // 导入需要的分类子组件
-import FreshComponent from '@/components/category/FreshComponent.vue'
-
+import Fresh from '@/components/category/Fresh.vue'
+import Food from '@/components/category/Food.vue'
 // 1. 获取路由实例并提取ID参数
 const route = useRoute()
 const categoryId = computed(() => route.params.id)
 
 // 2. 分类ID与组件的映射关系
 const categoryMap = {
-  '1': FreshComponent, // id=1对应生鲜组件
+  '1': Fresh, // id=1对应生鲜组件
+  '2': Food
   // 可扩展其他分类：如 '2': SnackComponent
 }
 
