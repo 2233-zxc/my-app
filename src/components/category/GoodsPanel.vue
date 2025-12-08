@@ -11,48 +11,50 @@
         <span class="iconfont icon-arrow-right-bold"></span>
       </div>
     </div>
-    <!-- 商品列表区域（仅通过Props渲染，无插槽） -->
+    <!-- 商品容器：左侧大图 + 右侧列表（上下各4个） -->
     <div class="goods-container">
-      <div class="goods-list">
-        <!-- 遍历父组件传递的goodsList数据 -->
-        <div class="goods-item" v-for="(item, idx) in goodsList" :key="idx">
-          <!-- 商品图片 -->
-          <div class="goods-img-wrap">
-            <img :src="item.imgUrl" :alt="item.name" class="goods-img" />
-            <!-- 商品标签（如“全场3件8折”） -->
-            <span class="goods-tag" v-if="item.tag">{{ item.tag }}</span>
-          </div>
-          <!-- 商品名称 -->
-          <div class="goods-name">{{ item.name }}</div>
-          <!-- 商品规格 -->
-          <div class="goods-spec">{{ item.spec }}</div>
-          <!-- 商品价格 -->
-          <div class="goods-price">¥ {{ item.price }}</div>
-        </div>
+      <!-- 左侧大图（保留原有结构，不修改） -->
+      <div class="goods-left">
+        <img :src="leftBigImg" alt="" class="left-img" />
       </div>
+      <!-- 右侧商品列表（调整为2行4列，上下各4个） -->
+      <router-link>
+        <div class="goods-list">
+          <div class="goods-item" v-for="(item, idx) in goodsList" :key="idx">
+            <!-- 商品图片 -->
+            <div class="goods-img-wrap">
+              <img :src="item.imgUrl" :alt="item.name" class="goods-img" />
+              <!-- 商品标签（如“全场3件8折”） -->
+              <span class="goods-tag" v-if="item.tag">{{ item.tag }}</span>
+            </div>
+            <!-- 商品名称 -->
+            <div class="goods-name">{{ item.name }}</div>
+            <!-- 商品规格 -->
+            <div class="goods-spec">{{ item.spec }}</div>
+            <!-- 商品价格 -->
+            <div class="goods-price">¥ {{ item.price }}</div>
+          </div>
+        </div>
+      </router-link>
     </div>
   </div>
 </template>
 
 <script setup>
-// 定义Props（补充goodsList，移除插槽相关逻辑）
+// 定义Props（完全保留原有逻辑）
 const props = defineProps({
-  // 主标题
-  title: {
-    type: String
-  },
-  // 副标题
-  subTitle: {
-    type: String
-  },
-  // 商品列表（核心：无插槽时仅靠这个Props渲染列表）
+  title: { type: String },
+  subTitle: { type: String },
+  // 左侧大图的图片地址
+  leftBigImg: { type: String },
+  // 右侧商品列表（传递8个商品数据）
   goodsList: {
     type: Array,
-    default: () => [] // 默认空数组，避免遍历报错
+    default: () => []
   }
 })
 
-// 可选：“查看全部”点击事件（向父组件传递）
+// “查看全部”点击事件
 const emit = defineEmits(["viewAll"])
 const handleViewAll = () => {
   emit("viewAll")
@@ -60,7 +62,7 @@ const handleViewAll = () => {
 </script>
 
 <style scoped>
-/* 原有样式保留 + 补充商品列表样式 */
+/* 原有标题样式保留 */
 .panel {
   height: 800px;
   margin-bottom: 20px;
@@ -87,41 +89,61 @@ const handleViewAll = () => {
   color: #A1A1A1;
 }
 .title-right{
-    display: flex;
-    align-items: center;
-}
-.title-right a {
-  color: #A1A1A1;
-  text-decoration: none; /* 移除下划线，优化样式 */
   display: flex;
   align-items: center;
 }
-.title-right i {
-  margin-left: 4px; /* 图标和文字间距 */
+.title-right a {
+  color: #A1A1A1;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+}
+.title-right .iconfont {
+  margin-left: 4px;
 }
 
-/* 商品列表核心样式 */
+/* 核心：左侧大图 + 右侧列表布局（左侧完全保留） */
 .goods-container {
-  width: 100%;
-  height: calc(100% - 62px); /* 适配panel固定高度，减去标题高度 */
-  overflow: hidden; /* 防止内容溢出 */
+  display: flex;
+  gap: 20px; /* 左侧与右侧的间距 */
+  height: calc(100% - 62px); /* 减去标题高度 */
 }
+
+/* 左侧大图样式（完全保留，不修改） */
+.goods-left {
+  width: 20%; /* 左侧占比不变 */
+  height: 100%;
+  border-radius: 4px;
+  overflow: hidden;
+}
+.left-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* 右侧商品列表：核心修改 → 2行4列（上下各4个） */
 .goods-list {
+  width: 80%; /* 右侧占比不变 */
   display: grid;
-  grid-template-columns: repeat(5, 1fr); /* 5列布局，和截图一致 */
-  gap: 20px; /* 商品间距 */
+  grid-template-columns: repeat(4, 1fr); /* 每行4列（原5列） */
+  grid-template-rows: repeat(2, 1fr); /* 共2行 → 上下各4个，总计8个 */
+  gap: 20px; /* 商品之间的间距（可微调为25px更宽松） */
   height: 100%;
 }
+
+/* 商品项样式（适配2行4列布局，微调优化） */
 .goods-item {
-  width: 100%;
-  height: 100%;
   display: flex;
   flex-direction: column;
+  height: 100%;
+  padding: 8px; /* 新增内边距，提升视觉效果 */
+  box-sizing: border-box;
 }
 .goods-img-wrap {
   position: relative;
   width: 100%;
-  aspect-ratio: 1/1; /* 图片正方形比例 */
+  aspect-ratio: 1/1; /* 图片正方形（可改为4/3增大图片） */
   border-radius: 4px;
   overflow: hidden;
   margin-bottom: 8px;
@@ -129,7 +151,7 @@ const handleViewAll = () => {
 .goods-img {
   width: 100%;
   height: 100%;
-  object-fit: cover; /* 图片自适应，不拉伸 */
+  object-fit: cover;
 }
 .goods-tag {
   position: absolute;
@@ -146,7 +168,7 @@ const handleViewAll = () => {
   color: #333;
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap; /* 文字超出隐藏 */
+  white-space: nowrap;
   margin-bottom: 4px;
 }
 .goods-spec {
