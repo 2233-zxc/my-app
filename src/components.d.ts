@@ -11,10 +11,12 @@ export {}
 /* prettier-ignore */
 declare module 'vue' {
   export interface GlobalComponents {
+    ElButton: typeof import('element-plus/es')['ElButton']
     Food: typeof import('./components/category/Food.vue')['default']
     Fresh: typeof import('./components/category/Fresh.vue')['default']
     GoodsPanel: typeof import('./components/category/GoodsPanel.vue')['default']
     HomeBannerCategory: typeof import('./components/Home/HomeBannerCategory.vue')['default']
+    HomeCart: typeof import('./components/Home/HomeCart.vue')['default']
     HomeFresh: typeof import('./components/Home/HomeFresh.vue')['default']
     HomeGoods: typeof import('./components/Home/HomeGoods.vue')['default']
     HomeHot: typeof import('./components/Home/HomeHot.vue')['default']

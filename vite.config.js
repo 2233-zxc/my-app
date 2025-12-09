@@ -7,35 +7,50 @@ import vueDevTools from 'vite-plugin-vue-devtools'
 import AutoImport from 'unplugin-auto-import/vite'
 import Components from 'unplugin-vue-components/vite'
 import { ElementPlusResolver } from 'unplugin-vue-components/resolvers'
+// 新增：导入图标解析器
+import Icons from 'unplugin-icons/vite'
+import IconsResolver from 'unplugin-icons/resolver'
 
 export default defineConfig({
   plugins: [
     vue(),
     vueDevTools(),
     AutoImport({
-      // 修复1：指定自动导入的文件路径，确保全局可用
       dts: 'src/auto-imports.d.ts',
       imports: ['vue', 'vue-router'],
       resolvers: [
-        // 修复2：完整配置Element Plus解析器，包含样式
+        // Element Plus API 自动导入（如 ElMessage）
         ElementPlusResolver({
-          importStyle: 'sass', // 启用scss样式
-          directives: true // 导入Element Plus指令（如Loading）
+          importStyle: 'sass',
+          directives: true
+        }),
+        // 新增：图标自动导入解析器
+        IconsResolver({
+          prefix: 'Icon',
+          enabledCollections: ['ep'] // ep 是 Element Plus 图标集
         })
       ]
     }),
     Components({
-      // 修复3：指定组件声明文件路径
       dts: 'src/components.d.ts',
       resolvers: [
-        // 配置elementPlus采用sass样式配色系统
+        // Element Plus 组件自动导入
         ElementPlusResolver({ 
           importStyle: "sass",
-          // 修复4：确保所有组件都能被按需导入（包括MessageBox/Message）
           exclude: /^ElIcon.*/ 
         }),
+        // Element Plus 图标组件自动导入
+        IconsResolver({
+          prefix: 'Icon',
+          enabledCollections: ['ep']
+        })
       ],
     }),
+    // 新增：unplugin-icons 插件（处理图标按需导入）
+    Icons({
+      autoInstall: true, // 自动安装缺失的图标集
+      collections: ['ep']
+    })
   ],
   resolve: {
     alias: {
@@ -45,13 +60,11 @@ export default defineConfig({
   css: {
     preprocessorOptions: {
       scss: {
-        // 修复5：确保样式文件路径正确，若没有自定义样式可注释
         additionalData: `
-          // 若没有自定义样式文件，注释以下两行，避免报错
-          // @use "@/styles/element/index.scss" as *;
-          // @use "@/styles/var.scss" as *;
-          // 手动导入Element Plus的基础样式（关键：解决弹窗样式缺失）
-          @use "element-plus/theme-chalk/src/message-box.scss" as *;
+          // 若没有自定义样式文件，直接注释这两行（避免编译报错）
+          @use "@/styles/element/index.scss" as *;
+          @use "@/styles/var.scss" as *;
+          // 保留 message 样式导入，确保弹窗样式生效
           @use "element-plus/theme-chalk/src/message.scss" as *;
         `,
       }

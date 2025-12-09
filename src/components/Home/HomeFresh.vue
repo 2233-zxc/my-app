@@ -29,18 +29,16 @@
 import { ref, onMounted } from 'vue';
 import { getFreshApi } from '@/apis/home';
 const freshList = ref([])
-const getFresh = async()=>{
+const getFresh = async () => {
     try {
-        const res = await getFreshApi()
-        if (res.code === 200) { // 增加接口成功校验
-            freshList.value = res.data
-        } else {
-            console.error('接口返回失败：', res.message)
-        }
+        // 直接获取data数组，因为响应拦截器已处理过code和message
+        const data = await getFreshApi();
+        freshList.value = data || []; // 直接赋值data，不需要检查code
+        console.log('生鲜数据获取成功：', freshList.value);
     } catch (error) {
-        console.error('请求接口失败：', error)
+        console.error('请求接口失败：', error.message); // 错误信息通过error.message获取
     }
-}
+};
 onMounted(() =>{
     getFresh()
 })

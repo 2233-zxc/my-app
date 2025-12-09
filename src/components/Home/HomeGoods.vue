@@ -15,17 +15,17 @@ import HomePanel from './HomePanel.vue';
 import { ref, onMounted } from 'vue';
 import { getGoodsApi } from '@/apis/home';
 const goodsList = ref([])
-const getGoods = async()=>{
-    try {
-        const res = await getGoodsApi()
-        if (res.code === 200) { // 增加接口成功校验
-            goodsList.value = res.data
-        } else {
-            console.error('接口返回失败：', res.message)
-        }
-    } catch (error) {
-        console.error('请求接口失败：', error)
-    }
+const getGoods = async () => {
+  try {
+    // ✅ 成功时：res 就是后端返回的 data（如商品列表数组）
+    const data = await getGoodsApi()
+    goodsList.value = data || []
+    console.log('商品数据获取成功：', data)
+  } catch (error) {
+    // ✅ 失败时：拦截器已自动提示错误（如 ElMessage），这里只做日志记录
+    console.error('请求商品接口失败：', error.message || error)
+    goodsList.value = []
+  }
 }
 onMounted(() =>{
     getGoods()

@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 import index from '@/views/index.vue'
 import HomePage from '@/views/HomePage.vue'
 import category from '@/views/category/category.vue'
+import HomeCart from '@/components/Home/HomeCart.vue'
 import LoginPage from '@/views/LoginPage.vue'
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -18,8 +19,13 @@ const router = createRouter({
         },
         //其他子路由
         {
-          path: 'category/:id',       // 完整路径是 /category/111
+          path: 'category/:id',       // 完整路径是 /category/id
           component: category
+        },
+        //购物车
+        {
+          path:'cart',
+          component:HomeCart
         }
       ]
     },

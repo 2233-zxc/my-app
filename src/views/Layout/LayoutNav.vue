@@ -9,42 +9,65 @@
       <!-- 已登录：显示用户名/退出 -->
       <template v-else>
         <li class="user-info">
-          <span>{{ getUserName }}</span>
+          <span>欢迎，{{ getUserName }}</span>
         </li>
         <li><a href="#" @click="handleLogout">退出登录</a></li>
       </template>
       
-      <!-- 公共导航项 -->
-      <li><router-link to="/order">我的订单</router-link></li>
-      <li><router-link to="/member">会员中心</router-link></li>
-      <li><router-link to="/help">帮助中心</router-link></li>
-      <li><router-link to="/service">在线客服</router-link></li>
+      <!-- 公共导航项：绑定点击事件校验登录状态 -->
+      <li>
+        <a href="#" @click.prevent="handleNavClick('/order')">我的订单</a>
+      </li>
+      <li>
+        <a href="#" @click.prevent="handleNavClick('/member')">会员中心</a>
+      </li>
+      <li>
+        <a href="#" @click.prevent="handleNavClick('/help')">帮助中心</a>
+      </li>
+      <li>
+        <a href="#" @click.prevent="handleNavClick('/service')">在线客服</a>
+      </li>
       <li><a href="#"><i class="iconfont icon-mobile-phone">手机版本</i></a></li>
     </ul>
   </nav>
 </template>
 
 <script setup>
+import { computed } from 'vue'
+// 1. 导入Pinia用户Store
 import { useUserStore } from '@/stores/user'
+// 2. 导入路由
 import { useRouter } from 'vue-router'
-import { computed } from 'vue' // 导入 computed！
 
+// 3. 初始化Store和路由
 const userStore = useUserStore()
 const router = useRouter()
 
-// 优先显示 nickName，为空时 fallback 到 userName
+// 4. 从userStore.userInfo获取用户名
 const getUserName = computed(() => {
-  const user = userStore.userInfo
-  if (!user) return '用户'
-
-  // 判断 nickName 是否有效（非空且非纯空白）
-  const hasNickName = user.nickName && user.nickName.trim() !== ''
-  return hasNickName ? user.nickName : user.userName || '用户'
+  return userStore.userInfo?.userName || '用户'
 })
 
+// 5. 退出登录方法
 const handleLogout = () => {
   userStore.logout()
   router.push('/login')
+}
+
+
+
+// 6. 导航项点击事件：校验登录状态，未登录跳登录页，已登录跳目标页面
+const handleNavClick = (targetPath) => {
+  // 未登录：跳登录页，并携带目标路径（登录后可返回）
+  if (!userStore.isLogin) {
+    router.push({
+      path: '/login',
+      query: { redirect: targetPath } // 记录要访问的页面
+    })
+  } else {
+    // 已登录：正常跳转到目标页面
+    router.push(targetPath)
+  }
 }
 </script>
 
@@ -96,7 +119,7 @@ const handleLogout = () => {
   font-weight: 500;
 }
 
-/* 退出登录按钮 hover 效果 */
+/* 退出登录/导航项 hover 效果 */
 .nav-item li a:hover {
   color: #5EB69C;
   transition: color 0.2s;

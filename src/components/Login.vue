@@ -241,10 +241,9 @@ const handleRegister = debounce(async () => {
 
 // ========== 7. 页面挂载 ==========
 onMounted(() => {
-  // 自动填充本地存储的用户名
-  const savedUsername = localStorage.getItem('username')
-  if (savedUsername) {
-    loginForm.value.username = savedUsername
+  // 优先使用 Pinia 持久化存储的用户信息自动填充用户名
+  if (userStore.userInfo?.userName) {
+    loginForm.value.username = userStore.userInfo.userName
   }
 })
 </script>

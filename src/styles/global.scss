@@ -1,0 +1,24 @@
+// 自定义成功弹窗样式
+.custom-success-message {
+  background-color: #f0f9eb !important; // 浅绿色背景
+  border: 1px solid #e1f3d8 !important; // 浅绿边框
+  color: #67c23a !important; // 绿色文字
+  display: flex !important;
+  align-items: center !important; // 图标+文字垂直居中
+  padding: 12px 20px !important; // 优化内边距
+}
+// 对勾图标样式
+.custom-success-message .el-message__icon {
+  display: inline-block !important; // 确保图标不被隐藏
+  color: #67c23a !important; // 对勾绿色（和文字一致）
+  font-size: 16px !important; // 图标大小
+  margin-right: 8px !important; // 图标与文字间距
+}
+.custom-error-message{
+  background-color: #fef0f0 !important; // 浅红背景（匹配 error 类型）
+  border: 1px solid #fcd1d1 !important; // 浅红边框
+  color: #f56c6c !important; // 错误文字色（Element Plus 错误主色）
+  padding: 12px 16px !important; // 内边距
+  border-radius: 4px !important; // 圆角
+  box-shadow: 0 2px 12px 0 rgba(245, 108, 108, 0.1) !important; // 轻微阴影
+}

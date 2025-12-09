@@ -84,17 +84,17 @@ import { getBannerApi } from '@/apis/home';
 
 // ===================== 轮播组件逻辑 =====================
 const bannerList = ref([])
-const getBanner = async()=>{
-    try {
-        const res = await getBannerApi()
-        if (res.code === 200) { 
-            bannerList.value = res.data || []
-        } else {
-            console.error('接口返回失败：', res.message)
-        }
-    } catch (error) {
-        console.error('请求接口失败：', error)
-    }
+const getBanner = async () => {
+  try {
+    // 直接获取数据（已经是后端返回的 data 数组）
+    const data = await getBannerApi()
+    bannerList.value = data || [] // 不需要 .data，也不需要判断 code
+    console.log('轮播图数据获取成功：', data)
+  } catch (error) {
+    // 拦截器已自动弹出 ElMessage 错误提示
+    console.error('获取轮播图失败：', error)
+    bannerList.value = []
+  }
 }
 
 const currentIndex = ref(0)

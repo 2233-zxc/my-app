@@ -1,43 +1,46 @@
 <template>
-    <header class="header-nav wrapper">
-        <div class="logo">
-            <router-link to="/"><img src="@/assets/小兔鲜儿logo.png" alt=""></router-link>
-        </div>
-        <div class="nav">
-            <ul>
-                <li><router-link to="/">首页</router-link></li>
-                <li v-for="(item,index) in categoryList" :key="item.id">
-                    <router-link :to="`/category/${item.id}`">{{ item.name }}</router-link>
-                </li>
-            </ul>
-        </div>
-        <div class="search">
-            <span class="iconfont icon-search"></span>
-            <input type="text" placeholder="搜一搜" />
-		</div>
-        <!-- 购物车 -->
-        <div class="cart">
-            <i class="iconfont icon-cart-full"></i>
-            <span>{{ cartCount }}</span>
-        </div>
-    </header>
+  <header class="header-nav wrapper">
+    <div class="logo">
+      <router-link to="/"><img src="@/assets/小兔鲜儿logo.png" alt=""></router-link>
+    </div>
+    <div class="nav">
+      <ul>
+        <li><router-link to="/">首页</router-link></li>
+        <li v-for="item in categoryList" :key="item.id">
+          <router-link :to="`/category/${item.id}`">{{ item.name }}</router-link>
+        </li>
+      </ul>
+    </div>
+    <div class="search">
+      <span class="iconfont icon-search"></span>
+      <input type="text" placeholder="搜一搜" />
+    </div>
+    <!-- 购物车 -->
+    <div class="cart">
+      <router-link to="/cart">
+        <i class="iconfont icon-cart-full"></i>
+        <span>{{ cartCount }}</span>
+      </router-link>
+    </div>
+  </header>
 </template>
+
 <script setup>
-import { ref } from 'vue';
-//使用Pinia的数据
-//1.导入pinia中的storeToRefs方法实现解构响应式数据
-import { storeToRefs } from 'pinia';
-//2.导入Pinia Store
+import { storeToRefs } from 'pinia'
 import { useCategoryStore } from '@/stores/category'
-//3.创建store实例
+import { useCartStore } from '@/stores/Cart' // 👈 导入 cart store
+
+// 分类数据
 const categoryStore = useCategoryStore()
-//4. 核心：用storeToRefs解构响应式的categoryList（必须！否则失去响应式）
-const { categoryList, loading } = storeToRefs(categoryStore)
+const { categoryList } = storeToRefs(categoryStore)
 
-const cartCount = ref(0)
+// 购物车数据 👇
+const cartStore = useCartStore()
+const { cartCount } = storeToRefs(cartStore) // 响应式解构
 </script>
-<style scoped>
 
+<style scoped>
+/* 样式保持不变 */
 .header-nav{
     height: 110px;
     display: flex;
@@ -74,32 +77,25 @@ const cartCount = ref(0)
     height: 33px;
     border-bottom: 2px solid #F4F4F4;
 }
-/* 搜索图标 */
 .search .iconfont{
 	margin-right: 8px;
 	font-size: 20px;
 	color: #CCCCCC;
 }
-
 .search input{
     border: none;
-    /* 消除input输入的聚焦状态 */
     outline: none;
 }
-/* 搜一搜字体大小颜色的设置 */
 .search input::placeholder{
 	font-size: 16px;
 	color: #CCCCCC;
 }
-/* 购物车 */
 .cart{
 	position: relative;
 }
-/* 字体图片 */
 .cart .iconfont{
 	font-size: 24px;
 }
-/* 数字2 */
 .cart span{
 	position: absolute;
 	top: 1px;

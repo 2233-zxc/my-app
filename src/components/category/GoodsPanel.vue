@@ -33,6 +33,8 @@
             <div class="goods-spec">{{ item.spec }}</div>
             <!-- 商品价格 -->
             <div class="goods-price">¥ {{ item.price }}</div>
+            <!-- 加入购物车按钮 -->
+            <button class="add-to-cart-btn" @click="addToCart(item)">加入购物车</button>
           </div>
         </div>
       </router-link>
@@ -41,13 +43,14 @@
 </template>
 
 <script setup>
+import { useCartStore } from '@/stores/Cart'
+const cartStore = useCartStore()
+
 // 定义Props（完全保留原有逻辑）
 const props = defineProps({
   title: { type: String },
   subTitle: { type: String },
-  // 左侧大图的图片地址
   leftBigImg: { type: String },
-  // 右侧商品列表（传递8个商品数据）
   goodsList: {
     type: Array,
     default: () => []
@@ -58,6 +61,12 @@ const props = defineProps({
 const emit = defineEmits(["viewAll"])
 const handleViewAll = () => {
   emit("viewAll")
+}
+
+// 添加商品到购物车
+const addToCart = (product) => {
+  cartStore.addItem(product)
+  alert('商品已成功添加到购物车！')
 }
 </script>
 
@@ -180,5 +189,19 @@ const handleViewAll = () => {
   font-size: 14px;
   color: #ff6700;
   font-weight: 600;
+}
+/* 原有样式保持不变 */
+.add-to-cart-btn {
+  background-color: #e26237;
+  color: white;
+  border: none;
+  padding: 5px 10px;
+  font-size: 12px;
+  cursor: pointer;
+  border-radius: 4px;
+  margin-top: auto; /* 让按钮始终位于商品项底部 */
+}
+.add-to-cart-btn:hover {
+  background-color: darken(#e26237, 10%);
 }
 </style>

@@ -29,17 +29,17 @@
 import { ref, onMounted } from 'vue';
 import { getNewApi } from '@/apis/home';
 const newList = ref([])
-const getNews = async()=>{
-    try {
-        const res = await getNewApi()
-        if (res.code === 200) { // 增加接口成功校验
-            newList.value = res.data
-        } else {
-            console.error('接口返回失败：', res.message)
-        }
-    } catch (error) {
-        console.error('请求接口失败：', error)
-    }
+const getNews = async () => {
+  try {
+    // 直接获取数据（已经是后端返回的 data 数组）
+    const data = await getNewApi()
+    newList.value = data || []
+    console.log('新闻/资讯数据获取成功：', data)
+  } catch (error) {
+    // ✅ 错误已由 request.js 拦截器统一处理（如 ElMessage 提示）
+    console.error('获取新闻数据失败：', error.message || error)
+    newList.value = []
+  }
 }
 onMounted(() =>{
     getNews()

@@ -14,17 +14,17 @@ import HomePanel from './HomePanel.vue';
 import { ref, onMounted } from 'vue';
 import { getRenqiApi } from '@/apis/home';
 const renqiList = ref([])
-const getRenqi = async()=>{
-    try {
-        const res = await getRenqiApi()
-        if (res.code === 200) { // 增加接口成功校验
-            renqiList.value = res.data
-        } else {
-            console.error('接口返回失败：', res.message)
-        }
-    } catch (error) {
-        console.error('请求接口失败：', error)
-    }
+const getRenqi = async () => {
+  try {
+    // ✅ 直接获取数据（已经是后端返回的 data 数组）
+    const data = await getRenqiApi()
+    renqiList.value = data || []
+    console.log('人气商品数据获取成功：', data)
+  } catch (error) {
+    // ✅ 错误已由 request.js 拦截器统一处理（如 ElMessage 弹窗）
+    console.error('获取人气商品失败：', error.message || error)
+    renqiList.value = []
+  }
 }
 onMounted(() =>{
     getRenqi()

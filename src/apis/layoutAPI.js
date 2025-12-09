@@ -1,6 +1,6 @@
-//将api封装成接口函数
-import requestInstance from '@/utils/request' // 引入封装的axios
+import requestInstance from '@/utils/request'
 
-export function getCategoryApi(){
+// 获取头部导航（全量一级分类）
+export const getCategoryApi = () => {
   return requestInstance.get('/api/data/headers')
 }
