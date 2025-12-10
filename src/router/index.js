@@ -4,6 +4,7 @@ import HomePage from '@/views/HomePage.vue'
 import category from '@/views/category/category.vue'
 import HomeCart from '@/components/Home/HomeCart.vue'
 import LoginPage from '@/views/LoginPage.vue'
+import HomeOrder from '@/components/Home/HomeOrder.vue'
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
@@ -25,7 +26,12 @@ const router = createRouter({
         //购物车
         {
           path:'cart',
-          component:HomeCart
+          component:HomeCart,
+        },
+        //订单页面
+        {
+          path:'order',
+          component:HomeOrder
         }
       ]
     },

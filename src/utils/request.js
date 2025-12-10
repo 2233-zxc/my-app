@@ -1,6 +1,5 @@
-// src/utils/request.js
 import axios from 'axios'
-import { ElMessage } from 'element-plus' // 如果你用 Element Plus 做全局错误提示
+import { ElMessage } from 'element-plus'
 
 const requestInstance = axios.create({
   baseURL: 'http://localhost:8088',
@@ -9,36 +8,34 @@ const requestInstance = axios.create({
   withCredentials: true
 })
 
+// 请求拦截器
 requestInstance.interceptors.request.use((config) => {
   return config
 }, (error) => {
   return Promise.reject(error)
 })
 
-// 统一处理响应结构：{ code, message, data }
+// 响应拦截器
 requestInstance.interceptors.response.use(
   (response) => {
-    const res = response.data // 后端返回的完整对象：{ code, message, data }
+    const res = response.data
 
     // 成功状态码为 200
     if (res.code === 200) {
-      return res.data // 👈 只返回 data 部分
+      return res.data // 只返回 data 部分
     } else {
-      // 业务逻辑错误（如用户名已存在、密码错误等）
       ElMessage({
-        message: res.message || '请求失败', // 错误提示文案（适配res.message）
-        type: 'error', // 关键：指定类型为error（示例中是success，这里改为error匹配错误场景）
-        plain: true, // 和示例按钮的:plain="true" 对应，显示简约样式
-        center: false, // 示例未居中，默认false（如需居中可改为true）
-        duration: 2000, // 默认3秒自动关闭（可自定义）
-        showClose: true, // 显示关闭按钮（默认true）
+        message: res.message || '请求失败',
+        type: 'error',
+        plain: true,
+        duration: 2000,
+        showClose: true,
         customClass:'custom-error-message'
       })
       return Promise.reject(new Error(res.message || 'Error'))
     }
   },
   (error) => {
-    // 网络错误、404、500、超时等
     console.error('请求异常:', error)
     let message = '网络错误，请稍后重试'
 
