@@ -3,7 +3,7 @@
     <!-- 页面标题 -->
     <div class="page-header">
       <h2>确认订单</h2>
-      <p class="order-number">订单编号：{{ orderInfo.orderNo || '待生成' }}</p>
+      <p class="order-number">订单编号：{{ orderStore.realOrderNo || '待生成' }}</p>
     </div>
 
     <!-- 加载状态 -->
@@ -18,12 +18,12 @@
         <div class="form-section">
           <div class="section-title">
             <span>订单商品</span>
-            <span class="goods-count">共 {{ orderInfo.totalCount }} 件商品</span>
+            <span class="goods-count">共 {{ cartStore.totalCount }} 件商品</span>
           </div>
           
           <!-- 商品列表 -->
           <div class="goods-list">
-            <div class="goods-item" v-for="(goods, idx) in orderInfo.goodsList" :key="idx">
+            <div class="goods-item" v-for="(goods, idx) in cartStore.items" :key="idx">
               <div class="goods-img">
                 <img :src="goods.image" :alt="goods.name" />
               </div>
@@ -31,7 +31,7 @@
                 <h4 class="goods-name">{{ goods.name }}</h4>
                 <p class="goods-spec" v-if="goods.spec">{{ goods.spec }}</p>
                 <div class="goods-price-count">
-                  <span class="goods-price">¥{{ goods.price }}</span>
+                  <span class="goods-price">¥{{ goods.price.toFixed(2) }}</span>
                   <span class="goods-count">x{{ goods.count }}</span>
                 </div>
               </div>
@@ -111,7 +111,7 @@
                 <i class="iconfont icon-express"></i>
               </div>
               <div class="method-name">普通快递</div>
-              <div class="method-desc">预计{{ orderInfo.freight === '0.00' ? '包邮' : '¥' + orderInfo.freight }}，3-5天送达</div>
+              <div class="method-desc">预计{{ cartStore.totalAmount === '0.00' ? '包邮' : '¥' + cartStore.totalAmount }}，3-5天送达</div>
               <el-radio v-model="selectedDelivery" label="express" class="radio-btn"></el-radio>
             </div>
 
@@ -119,7 +119,7 @@
               class="method-item" 
               :class="{ active: selectedDelivery === 'fast' }"
               @click="selectedDelivery = 'fast'"
-              v-if="Number(orderInfo.totalAmount) >= 200"
+              v-if="Number(cartStore.totalAmount) >= 200"
             >
               <div class="method-icon">
                 <i class="iconfont icon-fast"></i>
@@ -165,7 +165,7 @@
             class="payment-item" 
             :class="{ active: selectedPayment === 'cod' }"
             @click="selectedPayment = 'cod'"
-            v-if="Number(orderInfo.totalAmount) >= 100"
+            v-if="Number(cartStore.totalAmount) >= 100"
           >
             <div class="payment-icon">
               <i class="iconfont icon-cod"></i>
@@ -180,7 +180,7 @@
           <!-- 商品总价 -->
           <div class="summary-item">
             <label>商品总价：</label>
-            <span>¥{{ orderInfo.totalAmount }}</span>
+            <span>¥{{ cartStore.totalAmount }}</span>
           </div>
           <!-- 运费（根据配送方式动态调整） -->
           <div class="summary-item">
@@ -195,7 +195,7 @@
           <!-- 优惠金额 -->
           <div class="summary-item discount">
             <label>优惠减免：</label>
-            <span>-¥{{ orderInfo.discount }}</span>
+            <span>-¥0.00</span>
           </div>
           <!-- 实付金额 -->
           <div class="summary-item total">
@@ -210,7 +210,7 @@
             type="primary"
             size="large"
             class="pay-btn"
-            :disabled="!selectedAddress || !selectedDelivery || !selectedPayment || isSubmitting || !orderStore.isOrderComplete"
+            :disabled="!selectedAddress || !selectedDelivery || !selectedPayment || isSubmitting || cartStore.items.length === 0"
             @click="handleSubmitOrder"
           >
             <span v-if="isSubmitting"><i class="el-icon-loading"></i> 提交中...</span>
@@ -315,42 +315,29 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted, onUnmounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { useOrderStore } from '@/stores/Order'
 import { useAddressStore } from '@/stores/address'
+import { useCartStore } from '@/stores/Cart' // 导入购物车Store
+// 1. 导入真实的API函数
+import { createOrderApi } from '@/apis/orderApi'
+import { createAlipayOrderApi } from '@/apis/alipayApi'
 
 // 初始化路由和Store
 const router = useRouter()
 const userStore = useUserStore()
 const orderStore = useOrderStore()
 const addressStore = useAddressStore()
+const cartStore = useCartStore() // 实例化购物车Store
 
 // ========== 基础数据 ==========
 // 加载状态
 const isLoading = ref(false)
 // 提交状态（防止重复提交）
 const isSubmitting = ref(false)
-
-// 核心改造：从OrderStore读取订单信息
-const orderInfo = computed(() => {
-  if (!orderStore.orderData?.goodsList?.length) {
-    ElMessage.warning('订单数据不存在，请重新选择商品结算')
-    router.push('/cart')
-    return {
-      orderNo: '',
-      totalAmount: '0.00',
-      freight: '0.00',
-      discount: '0.00',
-      actualAmount: '0.00',
-      goodsList: [],
-      totalCount: 0
-    }
-  }
-  return orderStore.orderData
-})
 
 // 用户信息（从Store获取）
 const userInfo = computed(() => {
@@ -502,7 +489,7 @@ const selectedDelivery = ref('express')
 // 选中的支付方式（默认微信支付）
 const selectedPayment = ref('wechat')
 // 订单备注
-const orderRemark = ref(orderStore.payInfo.remark || '')
+const orderRemark = ref('')
 // 地址弹窗显示状态
 const showAddressModal = ref(false)
 
@@ -548,7 +535,6 @@ const handleRegionChange = (value) => {
 // 选择收货地址
 const selectAddress = (addr) => {
   addressStore.selectAddress(addr)
-  orderStore.setPayInfo({ addressId: addr.addressId })
   showAddressModal.value = false
   ElMessage.success('已选择收货地址')
 }
@@ -568,27 +554,28 @@ const editAddress = (addr) => {
 
 // 删除地址
 const deleteAddress = async (addressId) => {
-  try {
-    await ElMessageBox.confirm('确定要删除该地址吗？', '提示', {
-      type: 'warning'
-    })
-    const userId = Number(userStore.userInfo?.userId)
+  const isConfirm = window.confirm('确定要删除该地址吗？');
+  
+  if (isConfirm) {
+    const userId = Number(userStore.userInfo?.userId);
     if (!userId || isNaN(userId)) {
-      ElMessage.error('用户ID无效，请重新登录')
-      return
+      ElMessage.error('用户ID无效，请重新登录');
+      return;
     }
-    const success = await addressStore.deleteAddress(addressId, userId)
+    
+    const success = await addressStore.deleteAddress(addressId, userId);
     if (success) {
+      ElMessage.success('地址删除成功');
       if (selectedAddress.value?.addressId === addressId) {
-        orderStore.setPayInfo({ addressId: '' })
+        addressStore.selectAddress(null);
       }
+    } else {
+      ElMessage.error('地址删除失败，请重试');
     }
-  } catch (error) {
-    if (error !== 'cancel') {
-      ElMessage.error('删除地址失败：' + (error.message || '操作异常'))
-    }
+  } else {
+    ElMessage.info('已取消删除地址');
   }
-}
+};
 
 // 保存地址（核心修复）
 const saveAddress = async () => {
@@ -653,14 +640,14 @@ const getFreightText = () => {
   if (selectedDelivery.value === 'fast') {
     return '¥15.00'
   }
-  return orderInfo.value.freight === '0.00' ? '免运费' : '¥' + orderInfo.value.freight
+  return '¥0.00' // 普通快递默认包邮
 }
 
 /**
  * 根据配送方式+支付方式计算实际应付金额
  */
 const getActualAmount = () => {
-  const baseAmount = parseFloat(orderInfo.value.actualAmount || 0)
+  const baseAmount = parseFloat(cartStore.totalAmount || 0)
   // 顺丰速运额外加15元运费
   let freightAdd = selectedDelivery.value === 'fast' ? 15 : 0
   // 货到付款额外加5元服务费
@@ -670,8 +657,9 @@ const getActualAmount = () => {
   return total.toFixed(2)
 }
 
-// 提交订单
+// 提交订单（核心修改：补充后端必填字段）
 const handleSubmitOrder = async () => {
+  // 前端校验
   if (!selectedAddress.value) {
     ElMessage.warning('请选择收货地址')
     showAddressModal.value = true
@@ -681,75 +669,54 @@ const handleSubmitOrder = async () => {
     ElMessage.warning('请选择支付方式')
     return
   }
-
-  orderStore.setPayInfo({
-    addressId: selectedAddress.value.addressId,
-    remark: orderRemark.value,
-    paymentType: selectedPayment.value,
-    deliveryType: selectedDelivery.value
-  })
-
-  if (!orderStore.isOrderComplete) {
-    ElMessage.warning('订单信息不完整，请检查收货地址和商品信息')
+  if (cartStore.items.length === 0) {
+    ElMessage.warning('购物车为空，请先添加商品')
+    router.push('/cart')
     return
   }
 
-  try {
-    await ElMessageBox.confirm(
-      `确认提交订单？应付金额：¥${getActualAmount()}`,
-      '订单确认',
-      {
-        type: 'info',
-        confirmButtonText: '确认提交',
-        cancelButtonText: '取消'
-      }
-    )
+  // 确认弹窗
+  const isConfirm = window.confirm(`确认提交订单？应付金额：¥${getActualAmount()}`);
+  if (!isConfirm) return
 
+  try {
     isSubmitting.value = true
 
-    const orderParams = {
-      ...orderStore.getPayParams(),
-      deliveryType: selectedDelivery.value,
-      paymentType: selectedPayment.value,
-      freight: selectedDelivery.value === 'fast' ? '15.00' : orderInfo.value.freight,
-      payServiceFee: selectedPayment.value === 'cod' ? '5.00' : '0.00',
-      actualAmount: getActualAmount(),
-      userId: userStore.userInfo.userId
+    // 1. 组装后端需要的完整OrderDto参数（匹配后端DTO）
+    const orderDto = {
+      userId: Number(userStore.userInfo.userId), // 真实用户ID
+      addressId: Number(selectedAddress.value.addressId), // 转为数字
+      totalCount: cartStore.totalCount, // 商品总数量（从购物车获取）
+      goodsAmount: cartStore.totalAmount, // 商品总价（从购物车获取）
+      freight: selectedDelivery.value === 'fast' ? '15.00' : '0.00', // 运费
+      discount: '0.00', // 优惠金额
+      totalAmount: getActualAmount(), // 实付金额
+      payMethod: selectedPayment.value, // 支付方式（alipay/wechat）
+      deliveryType: selectedDelivery.value, // 配送方式（express/self）
+      remark: orderRemark.value || '', // 订单备注
+      productName: cartStore.items.map(item => item.name).join(','), // 商品名称拼接
+      payServiceFee: selectedPayment.value === 'cod' ? '5.00' : '0.00', // 支付服务费
+      goodsList: cartStore.items.map(item => ({ // 商品明细（匹配OrderItemDto）
+        productId: Number(item.id), // 转为数字
+        goodsName: item.name || '',
+        goodsImage: item.image || '',
+        goodsSpec: item.spec || '',
+        price: item.price.toFixed(2), // 单价保留2位小数
+        quantity: Number(item.count), // 转为数字
+        itemAmount: (item.price * item.count).toFixed(2) // 订单项金额
+      }))
     }
+    // 2. 调用真实的创建订单接口
+    const orderRes = await createOrderApi(orderDto)
+    
+    // 修复：无需检查 orderRes.code，因为拦截器已处理状态码
+    const realOrderNo = orderRes.orderNo
+    orderStore.realOrderNo = realOrderNo
+    ElMessage.success('订单创建成功！')
 
-    // 模拟接口调用
-    await new Promise(resolve => setTimeout(resolve, 1500))
-    const res = {
-      code: 200,
-      msg: '订单创建成功',
-      data: {
-        orderNo: `ORD${Date.now()}`,
-        status: 'pending'
-      }
-    }
-
-    if (res.code === 200 && res.data.orderNo) {
-      orderStore.setOfficialOrderNo(res.data.orderNo)
-      ElMessage.success('订单提交成功！即将跳转到支付页面')
-      
-      setTimeout(() => {
-        router.push({
-          path: '/payment',
-          query: { 
-            orderNo: res.data.orderNo,
-            paymentType: selectedPayment.value,
-            actualAmount: getActualAmount()
-          }
-        })
-      }, 1000)
-    } else {
-      ElMessage.error(res.msg || '订单提交失败，请重试')
-    }
   } catch (error) {
-    if (error !== 'cancel') {
-      ElMessage.error(`订单提交失败：${error.message || '网络异常'}`)
-      console.error('提交订单失败：', error)
-    }
+    ElMessage.error(`订单提交失败：${error.message || '网络异常'}`)
+    console.error('提交订单失败：', error)
   } finally {
     isSubmitting.value = false
   }
@@ -757,6 +724,7 @@ const handleSubmitOrder = async () => {
 
 // ========== 页面生命周期 ==========
 onMounted(async () => {
+  // 登录校验
   if (!userStore.isLogin) {
     router.push({ path: '/login', query: { redirect: router.currentRoute.fullPath } })
     return
@@ -770,32 +738,22 @@ onMounted(async () => {
     return
   }
 
+  // 购物车为空校验
+  if (cartStore.items.length === 0) {
+    ElMessage.warning('购物车为空，请先添加商品')
+    router.push('/cart')
+    return
+  }
+
   isLoading.value = true
 
   try {
+    // 获取地址列表
     await addressStore.fetchAddressList(userId)
-    orderRemark.value = orderStore.payInfo.remark || ''
 
-    if (orderStore.payInfo.addressId) {
-      const defaultAddr = addressStore.addressList.find(addr => addr.addressId === orderStore.payInfo.addressId)
-      if (defaultAddr) {
-        addressStore.selectAddress(defaultAddr)
-      }
-    } else if (addressStore.defaultAddress) {
+    // 选中默认地址
+    if (addressStore.defaultAddress) {
       addressStore.selectAddress(addressStore.defaultAddress)
-    }
-
-    if (orderStore.payInfo.paymentType) {
-      selectedPayment.value = orderStore.payInfo.paymentType
-    }
-
-    if (!orderStore.isGoodsAmountValid) {
-      ElMessage.warning('订单金额异常，可能已被修改，请重新结算')
-      router.push('/cart')
-    }
-
-    if (orderStore.isOrderExpired) {
-      ElMessage.warning('当前订单即将过期，请尽快提交！')
     }
   } catch (error) {
     ElMessage.error('初始化订单页面失败：' + (error.message || '未知错误'))
@@ -803,6 +761,11 @@ onMounted(async () => {
   } finally {
     isLoading.value = false
   }
+})
+
+// 页面卸载时停止支付状态轮询
+onUnmounted(() => {
+  orderStore.stopPayStatusPolling()
 })
 </script>
 

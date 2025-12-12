@@ -1,114 +1,143 @@
-// @/stores/Order.js
 import { defineStore } from 'pinia'
-import { cloneDeep } from 'lodash' // 推荐使用深拷贝，避免引用问题
+import { cloneDeep } from 'lodash'
+import { createOrderApi } from '@/apis/orderApi'
+
+// 安全数字转换
+const safeNumber = (val) => {
+  const num = Number(val)
+  return isNaN(num) ? 0 : num
+}
 
 export const useOrderStore = defineStore('order', {
   state: () => ({
-    // 订单基础数据（从购物车传递）
     orderData: {
-      goodsList: [], // 选中商品列表
-      totalCount: 0, // 商品总数量
-      totalAmount: '0.00', // 商品总价
-      freight: '0.00', // 运费
-      discount: '0.00', // 优惠金额
-      actualAmount: '0.00' // 实付金额
+      goodsList: [],
+      totalCount: 0,
+      totalAmount: '0.00',
+      freight: '0.00',
+      discount: '0.00',
+      actualAmount: '0.00'
     },
-    // 支付相关信息
     payInfo: {
-      addressId: '', // 收货地址ID
-      payMethod: 'alipay', // 默认支付方式
-      remark: '' // 订单备注
+      addressId: '',
+      payMethod: 'alipay',
+      deliveryType: 'express',
+      payServiceFee: '0.00',
+      remark: ''
     },
-    // 订单状态
-    isOrderComplete: false,
-    isOrderExpired: false
+    realOrderNo: ''
   }),
 
   actions: {
-    /**
-     * 存储从购物车传递的订单基础数据
-     * @param {Object} data - 购物车选中的订单数据
-     * @returns {Boolean} 是否存储成功
-     */
+    // 设置订单商品数据（来自购物车）
     setOrderData(data) {
-      try {
-        if (!data || !Array.isArray(data.goodsList) || data.goodsList.length === 0) {
-          console.error('订单数据格式错误：商品列表不能为空')
-          return false
-        }
-
-        // 深拷贝，避免购物车数据修改影响订单数据
-        this.orderData = cloneDeep({
-          goodsList: data.goodsList,
-          totalCount: Number(data.totalCount) || 0,
-          totalAmount: data.totalAmount || '0.00',
-          freight: data.freight || '0.00',
-          discount: data.discount || '0.00',
-          actualAmount: data.actualAmount || '0.00'
-        })
-
-        // 初始化订单完成状态
-        this.isOrderComplete = false
-        return true
-      } catch (error) {
-        console.error('存储订单数据失败：', error)
+      if (!data || !Array.isArray(data.goodsList) || data.goodsList.length === 0) {
+        console.error('订单数据错误：商品列表不能为空')
         return false
       }
+
+      const calcTotalCount = data.goodsList.reduce((sum, item) => {
+        return sum + safeNumber(item.count)
+      }, 0)
+
+      if (calcTotalCount <= 0) {
+        console.error('商品总数量必须大于0')
+        return false
+      }
+
+      const calcTotalAmount = data.goodsList.reduce((sum, item) => {
+        return sum + safeNumber(item.price) * safeNumber(item.count)
+      }, 0).toFixed(2)
+
+      this.orderData = cloneDeep({
+        goodsList: data.goodsList,
+        totalCount: calcTotalCount,
+        totalAmount: data.totalAmount || calcTotalAmount,
+        freight: data.freight || '0.00',
+        discount: data.discount || '0.00',
+        actualAmount: data.actualAmount || '0.00'
+      })
+
+      return true
     },
 
-    /**
-     * 设置支付相关信息（地址、支付方式、备注等）
-     * @param {Object} info - 支付信息
-     */
+    // 设置支付相关参数（地址、支付方式等）
     setPayInfo(info) {
       this.payInfo = { ...this.payInfo, ...info }
-      // 更新订单完成状态（地址和支付方式都存在则视为完成）
-      this.isOrderComplete = !!this.payInfo.addressId && !!this.payInfo.payMethod
     },
 
-    /**
-     * 获取完整的支付参数
-     * @returns {Object} 支付参数
-     */
-    getPayParams() {
+    // 组装提交给后端的 OrderDto（关键：补全 goodsName）
+    assembleOrderDto() {
+      const finalTotalCount = this.orderData.totalCount > 0 
+        ? this.orderData.totalCount 
+        : this.orderData.goodsList.reduce((sum, item) => sum + safeNumber(item.count), 0)
+
+      if (finalTotalCount <= 0) {
+        throw new Error('商品总数量无效')
+      }
+
+      // 关键修复：确保 goodsName 不为 null 或 undefined
+      const goodsList = this.orderData.goodsList.map(item => {
+        // 防御性处理：name 可能是 undefined / null / 空字符串
+        const goodsName = (item.name || '').toString().trim() || '未命名商品'
+
+        return {
+          productId: safeNumber(item.id),
+          goodsName: goodsName, // ←←← 这里保证非 null
+          goodsImage: item.image || '',
+          goodsSpec: item.spec || '',
+          price: (item.price || 0).toFixed(2),
+          quantity: safeNumber(item.count) || 1,
+          itemAmount: (safeNumber(item.price) * safeNumber(item.count)).toFixed(2)
+        }
+      })
+
       return {
-        ...this.orderData,
-        ...this.payInfo,
-        orderNo: `ORD${Date.now()}` // 临时订单号，实际由后端生成
+        userId: 1, // 实际应从用户状态获取
+        addressId: safeNumber(this.payInfo.addressId) || 0,
+        totalCount: finalTotalCount,
+        goodsAmount: this.orderData.totalAmount,
+        freight: this.orderData.freight,
+        discount: this.orderData.discount,
+        totalAmount: this.orderData.actualAmount,
+        payMethod: this.payInfo.payMethod,
+        deliveryType: this.payInfo.deliveryType,
+        remark: this.payInfo.remark || '',
+        productName: goodsList.map(g => g.goodsName).join(','), // 商品名称拼接
+        payServiceFee: this.payInfo.payServiceFee,
+        goodsList: goodsList // 包含 goodsName 的完整列表
       }
     },
 
-    /**
-     * 清空订单数据（保留支付方式配置）
-     * @param {Boolean} keepPayInfo - 是否保留支付信息
-     */
-    clearOrderData(keepPayInfo = false) {
-      this.orderData = {
-        goodsList: [],
-        totalCount: 0,
-        totalAmount: '0.00',
-        freight: '0.00',
-        discount: '0.00',
-        actualAmount: '0.00'
+    // 提交订单到后端
+    async createOrder() {
+      if (!this.payInfo.addressId) {
+        return { success: false, error: '请选择收货地址' }
       }
-      this.isOrderComplete = false
-      if (!keepPayInfo) {
-        this.payInfo = {
-          addressId: '',
-          payMethod: 'alipay',
-          remark: ''
+      if (this.orderData.goodsList.length === 0) {
+        return { success: false, error: '商品列表为空' }
+      }
+
+      try {
+        const orderDto = this.assembleOrderDto()
+        console.log('提交订单参数:', JSON.stringify(orderDto, null, 2))
+
+        const response = await createOrderApi(orderDto)
+        
+        // 修复：直接使用 response 作为数据（因为拦截器已处理状态码）
+        this.realOrderNo = response?.orderNo || ''
+        return {
+          success: true,
+          orderNo: this.realOrderNo,
+          message: '订单创建成功'
+        }
+      } catch (error) {
+        console.error('创建订单异常:', error)
+        return {
+          success: false,
+          error: error.message || '网络错误，请重试'
         }
       }
-    }
-  },
-
-  getters: {
-    // 校验商品金额是否有效（防篡改）
-    isGoodsAmountValid() {
-      const calculatedTotal = this.orderData.goodsList.reduce((sum, item) => {
-        return sum + Number(item.price) * Number(item.count)
-      }, 0).toFixed(2)
-      return calculatedTotal === this.orderData.totalAmount
     }
   }
 })

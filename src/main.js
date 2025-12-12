@@ -9,6 +9,7 @@ import { useUserStore } from '@/stores/user'
 // 引入全局样式文件
 import '@/styles/global.scss' 
 
+
 const app = createApp(App)
 const pinia = createPinia()
 pinia.use(piniaPluginPersistedstate)
